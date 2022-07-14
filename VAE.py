@@ -26,7 +26,7 @@ from tqdm.notebook import trange, tqdm
 
 from RES_VAE import VAE as VAE
 from vgg19 import VGG19
-'''
+
 from clearml import Task
 task = Task.init(project_name='bogdoll/anomaly_detection_simon', task_name='cnn-vae')
 
@@ -36,17 +36,17 @@ task.set_base_docker(
             docker_arguments="-e NVIDIA_DRIVER_CAPABILITIES=all"
             )
 task.execute_remotely('docker', clone=False, exit_process=True)
-'''
+
 # In[2]:
 
 
-batch_size = 2
+batch_size = 32
 image_size = 256
 lr = 1e-4
 nepoch = 100
 start_epoch = 0
-dataset_root = "/disk/vanishing_data/mb274/data/cityscapes/test/"
-#dataset_root = Dataset.get(dataset_name= 'cityscapes_train', dataset_project= 'bogdoll/anomaly_detection_simon').get_local_copy()
+#dataset_root = "/disk/vanishing_data/mb274/data/cityscapes/test/"
+dataset_root = Dataset.get(dataset_name= 'cityscapes_train', dataset_project= 'bogdoll/anomaly_detection_simon').get_local_copy()
 save_dir = os.getcwd()
 model_name = "test_train"
 load_checkpoint  = False
