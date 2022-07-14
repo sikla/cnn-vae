@@ -22,7 +22,7 @@ import math
 from IPython.display import clear_output
 import matplotlib.pyplot as plt
 from PIL import Image
-from tqdm.notebook import trange, tqdm
+from tqdm import trange, tqdm
 
 from RES_VAE import VAE as VAE
 from vgg19 import VGG19
