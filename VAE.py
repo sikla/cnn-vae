@@ -27,7 +27,9 @@ from tqdm.notebook import trange, tqdm
 from RES_VAE import VAE as VAE
 from vgg19 import VGG19
 
-from clearml import Task
+
+from clearml import StorageManager, Task
+from clearml import Dataset as cmlDataset
 task = Task.init(project_name='bogdoll/anomaly_detection_simon', task_name='cnn-vae')
 
 task.set_base_docker(
@@ -46,7 +48,7 @@ lr = 1e-4
 nepoch = 100
 start_epoch = 0
 #dataset_root = "/disk/vanishing_data/mb274/data/cityscapes/test/"
-dataset_root = Dataset.get(dataset_name= 'cityscapes_train', dataset_project= 'bogdoll/anomaly_detection_simon').get_local_copy()
+dataset_root = cmlDataset.get(dataset_name= 'cityscapes_train', dataset_project= 'bogdoll/anomaly_detection_simon').get_local_copy()
 save_dir = os.getcwd()
 model_name = "test_train"
 load_checkpoint  = False
