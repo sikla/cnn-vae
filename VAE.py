@@ -43,7 +43,7 @@ task.execute_remotely('docker', clone=False, exit_process=True)
 
 
 batch_size = 32
-image_size = 254
+image_size = 256
 lr = 1e-4
 nepoch = 100
 start_epoch = 0
