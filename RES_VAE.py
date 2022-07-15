@@ -147,5 +147,5 @@ class VAE(nn.Module):
 
     def forward(self, x):
         encoding, mu, log_var = self.encoder(x)
-        recon = self.decoder(encoding)
+        recon = self.decoder(encoding)   
         return recon, mu, log_var

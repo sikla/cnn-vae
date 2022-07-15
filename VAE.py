@@ -27,7 +27,7 @@ from tqdm import trange, tqdm
 from RES_VAE import VAE as VAE
 from vgg19 import VGG19
 
-
+'''
 from clearml import StorageManager, Task
 from clearml import Dataset as cmlDataset
 task = Task.init(project_name='bogdoll/anomaly_detection_simon', task_name='cnn-vae')
@@ -38,17 +38,17 @@ task.set_base_docker(
             docker_arguments="-e NVIDIA_DRIVER_CAPABILITIES=all"
             )
 task.execute_remotely('docker', clone=False, exit_process=True)
-
+'''
 # In[2]:
 
 
-batch_size = 16
-image_size = 256
+batch_size = 32
+image_size = 64
 lr = 1e-4
 nepoch = 100
 start_epoch = 0
-#dataset_root = "/disk/vanishing_data/mb274/data/cityscapes/test/"
-dataset_root = cmlDataset.get(dataset_name= 'cityscapes_train', dataset_project= 'bogdoll/anomaly_detection_simon').get_local_copy()
+dataset_root = "/disk/vanishing_data/mb274/data/cityscapes/test/"
+#dataset_root = cmlDataset.get(dataset_name= 'cityscapes_train', dataset_project= 'bogdoll/anomaly_detection_simon').get_local_copy()
 save_dir = os.getcwd()
 model_name = "test_train"
 load_checkpoint  = False
@@ -159,7 +159,7 @@ def vae_loss(recon, x, mu, logvar):
 # In[7]:
 
 
-transform = T.Compose([T.Resize(image_size), T.ToTensor()])
+transform = T.Compose([T.Resize((image_size, image_size)), T.ToTensor()])
 
 trainloader, testloader = get_data_STL10(transform, batch_size, download=False, root=dataset_root)
 
@@ -204,7 +204,7 @@ feature_extractor = feature_extractor.to(device)
 
 
 #Create VAE network
-vae_net = VAE(channel_in=3, ch=256).to(device)
+vae_net = VAE(channel_in=3, ch=64).to(device)
 # setup optimizer
 optimizer = optim.Adam(vae_net.parameters(), lr=lr, betas=(0.5, 0.999))
 #Loss function
@@ -260,15 +260,15 @@ for epoch in trange(start_epoch, nepoch, leave=False):
     #In eval mode the model will use mu as the encoding instead of sampling from the distribution
     vae_net.eval()
     with torch.no_grad():
-        recon_data, mu, logvar = vae_net(test_images.to(device))
+        recon_data, _, _ = vae_net(test_images.to(device))
         recon_data = recon_data.detach()
-        loss = torch.add(mu.detach().sum(), logvar.detach().sum())
+
         #vutils.save_image(torch.cat((torch.sigmoid(recon_data.cpu()), test_images),2),"%s/%s/%s_%d.png" % (save_dir, "Results" , model_name, image_size))
         
         if not os.path.exists("%s/%s/%s/" % (save_dir, "Results" , model_name)):
             os.mkdir("%s/%s/%s/" % (save_dir, "Results" , model_name))
         if epoch % 2 == 0:
-            vutils.save_image(torch.sigmoid(recon_data[0].cpu()),"%s/%s/%s/%s_%s_%s.png" % (save_dir, "Results" , model_name, 'recon', epoch, loss))
+            vutils.save_image(torch.sigmoid(recon_data[0].cpu()),"%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'recon', epoch))
             vutils.save_image(test_images[0],"%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'original', epoch))
         
 
