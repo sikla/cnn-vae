@@ -28,9 +28,11 @@ from RES_VAE import VAE as VAE
 from vgg19 import VGG19
 
 
-from clearml import StorageManager, Task
+from clearml import StorageManager, Task, OutputModel, Logger
 from clearml import Dataset as cmlDataset
 task = Task.init(project_name='bogdoll/anomaly_detection_simon', task_name='cnn-vae')
+logger = task.get_logger
+model = OutputModel(task=task)
 
 task.set_base_docker(
             "nvcr.io/nvidia/pytorch:21.10-py3",
@@ -248,10 +250,15 @@ for epoch in trange(start_epoch, nepoch, leave=False):
         recon_data, mu, logvar = vae_net(images.to(device))
         #VAE loss
         loss = vae_loss(recon_data, images.to(device), mu, logvar)        
-        
+        Logger.current_logger().report_scalar('Loss', 'VAE_loss', value=loss.item(), iteration=i)
+
         #Perception loss
-        loss += feature_extractor(torch.cat((torch.sigmoid(recon_data), images.to(device)), 0))
-    
+        feat_loss = feature_extractor(torch.cat((torch.sigmoid(recon_data), images.to(device)), 0))
+        Logger.current_logger().report_scalar('Loss', 'feature_loss', value=feat_loss.item(), iteration=i)
+
+        loss = loss + feat_loss
+        Logger.current_logger().report_scalar('Loss', 'combined_loss', value=loss.item(), iteration=i)
+
         loss_log.append(loss.item())
         vae_net.zero_grad()
         loss.backward()
@@ -268,18 +275,28 @@ for epoch in trange(start_epoch, nepoch, leave=False):
         if not os.path.exists("%s/%s/%s/" % (save_dir, "Results" , model_name)):
             os.mkdir("%s/%s/%s/" % (save_dir, "Results" , model_name))
         if epoch % 2 == 0:
-            vutils.save_image(torch.sigmoid(recon_data[0].cpu()),"%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'recon', epoch))
-            vutils.save_image(test_images[0],"%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'original', epoch))
-        
+            #vutils.save_image(torch.sigmoid(recon_data[0].cpu()),"%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'recon', epoch))
+            #vutils.save_image(test_images[0],"%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'original', epoch))
+            np_recon = np.moveaxis(np.array(torch.sigmoid(recon_data[0].cpu())), 0, 2)
+            pil_recon = Image.fromarray(np.uint8(np_recon*255))
+            np_original = np.moveaxis(np.array(test_images[0]), 0, 2)
+            pil_original = Image.fromarray(np.uint8(np_original*255))
+
+            task.upload_artifact("%s_%s.png" % ('recon', epoch), pil_recon)
+            task.upload_artifact("%s_%s.png" % ('original', epoch), pil_original)
+
+            #Logger.current_logger().report_image("%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'recon', epoch), "image PIL", image=pil_recon)
+            #Logger.current_logger().report_image("%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'original', epoch), "image PIL", image=pil_original)
 
         #Save a checkpoint
-        torch.save({
-                    'epoch'                         : epoch,
-                    'loss_log'                      : loss_log,
-                    'model_state_dict'              : vae_net.state_dict(),
-                    'optimizer_state_dict'          : optimizer.state_dict()
+        #torch.save({
+        #            'epoch'                         : epoch,
+        #            'loss_log'                      : loss_log,
+        #            'model_state_dict'              : vae_net.state_dict(),
+        #            'optimizer_state_dict'          : optimizer.state_dict()
 
-                        }, save_dir + "/Models/" + model_name + "_" + str(image_size) + ".pt")  
-
+        #                }, save_dir + "/Models/" + model_name + "_" + str(image_size) + ".pt")  
+        torch.save(vae_net.state_dict(), save_dir + "/Models/" + model_name + "_" + str(image_size) + ".pt")
+        model.update_weights(weights_filename=save_dir + "/Models/" + model_name + "_" + str(image_size) + ".pt")
 
 # %%
