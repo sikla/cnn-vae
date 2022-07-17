@@ -253,11 +253,11 @@ for epoch in trange(start_epoch, nepoch, leave=False):
         Logger.current_logger().report_scalar('Loss', 'VAE_loss', value=loss.item(), iteration=i)
 
         #Perception loss
-        feat_loss = feature_extractor(torch.cat((torch.sigmoid(recon_data), images.to(device)), 0))
-        Logger.current_logger().report_scalar('Loss', 'feature_loss', value=feat_loss.item(), iteration=i)
+        #feat_loss = feature_extractor(torch.cat((torch.sigmoid(recon_data), images.to(device)), 0))
+        #Logger.current_logger().report_scalar('Loss', 'feature_loss', value=feat_loss.item(), iteration=i)
 
-        loss = loss + feat_loss
-        Logger.current_logger().report_scalar('Loss', 'combined_loss', value=loss.item(), iteration=i)
+        #loss = loss + feat_loss
+        #Logger.current_logger().report_scalar('Loss', 'combined_loss', value=loss.item(), iteration=i)
 
         loss_log.append(loss.item())
         vae_net.zero_grad()
@@ -274,7 +274,7 @@ for epoch in trange(start_epoch, nepoch, leave=False):
         
         if not os.path.exists("%s/%s/%s/" % (save_dir, "Results" , model_name)):
             os.mkdir("%s/%s/%s/" % (save_dir, "Results" , model_name))
-        if epoch % 2 == 0:
+        if epoch % 5 == 0:
             #vutils.save_image(torch.sigmoid(recon_data[0].cpu()),"%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'recon', epoch))
             #vutils.save_image(test_images[0],"%s/%s/%s/%s_%s.png" % (save_dir, "Results" , model_name, 'original', epoch))
             np_recon = np.moveaxis(np.array(torch.sigmoid(recon_data[0].cpu())), 0, 2)
