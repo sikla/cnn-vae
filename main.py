@@ -24,14 +24,14 @@ import matplotlib as mpl
 from model.RES_VAE import VAE as VAE
 from model.vgg19 import VGG19
 
-from data import get_data, get_data_STL10
+from data import get_data
 
 use_cuda = torch.cuda.is_available()
 GPU_indx  = 0
 device = torch.device(GPU_indx if use_cuda else "cpu")
 
 #%%
-'''
+
 
 from clearml import StorageManager, Task, OutputModel, Logger
 from clearml import Dataset as cmlDataset
@@ -47,13 +47,13 @@ task.set_base_docker(
 task.execute_remotely('docker', clone=False, exit_process=True)
 
 
-'''
-batch_size = 64
-img_size = 64
+
+batch_size = 8
+img_size = 256
 lr = 1e-4
-num_epochs = 30
+num_epochs = 100
 #dataset_root = "/disk/vanishing_data/mb274/data/cityscapes/test/"
-#dataset_root = cmlDataset.get(dataset_name= 'cityscapes_train', dataset_project= 'bogdoll/anomaly_detection_simon').get_local_copy()
+dataset_root = cmlDataset.get(dataset_name= 'cityscapes_train', dataset_project= 'bogdoll/anomaly_detection_simon').get_local_copy()
 save_dir = os.getcwd()
 model_name = "vae"
 load_checkpoint  = False
@@ -61,7 +61,7 @@ load_checkpoint  = False
 
 #data = {"normal": {"0": '/disk/vanishing_data/mb274/mnist_dummy/normal/'}, "anomaly": {"1": '/disk/vanishing_data/mb274/mnist_dummy/anomaly/'}, "anomaly_test": None}
 
-data = {"normal": {"0": '//disk/vanishing_data/mb274/data/cityscapes/test/'}, "anomaly": {"1": '/disk/vanishing_data/mb274/data/cityscapes/test/'}, "anomaly_test": None}
+data = {"normal": {"0": dataset_root}, "anomaly": {"1": dataset_root}, "anomaly_test": None}
 
 #create an empty layer that will simply record the feature map passed to it.
 class GetFeatures(nn.Module):
@@ -147,7 +147,7 @@ for ((name, source_param), target_param) in zip(state_dict.items(), feature_extr
 feature_extractor = feature_extractor.to(device)
 
 #Create VAE network
-vae_net = VAE(channel_in=3, ch=64).to(device)
+vae_net = VAE(channel_in=3, ch=256).to(device)
 
 # setup optimizer
 optimizer = optim.Adam(vae_net.parameters(), lr=0.0001)
@@ -246,8 +246,8 @@ for epoch in range(num_epochs):
         pil_original = Image.fromarray(np.uint8(np_original*255))
         pil_recon.save('recon_'+str(epoch)+'.png')
         pil_original.save('original_'+str(epoch)+'.png')
-        #task.upload_artifact("%s_%s.png" % ('recon', epoch), pil_recon)
-        #task.upload_artifact("%s_%s.png" % ('original', epoch), pil_original)
+        task.upload_artifact("%s_%s.png" % ('recon', epoch), pil_recon)
+        task.upload_artifact("%s_%s.png" % ('original', epoch), pil_original)
 
 
 #%%
